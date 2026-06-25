@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PT/SW Theory Explorer</title>
+<style>
+  :root {
+    --bg:       #0e0e10;
+    --bg2:      #161618;
+    --bg3:      #1e1e22;
+    --border:   rgba(255,255,255,0.08);
+    --border2:  rgba(255,255,255,0.14);
+    --text:     #e8e6e0;
+    --muted:    #7a7870;
+    --accent:   #c04828;
+    --accent2:  #3b8bd4;
+    --green:    #1d9e75;
+    --purple:   #8b7dd8;
+    --amber:    #e5a825;
+    --radius:   10px;
+    --font:     'Inter', system-ui, -apple-system, sans-serif;
+    --font-mono:'JetBrains Mono', 'Fira Mono', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 15px; line-height: 1.6; }
+
+  /* ── Layout ── */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 1.5rem 2rem 1.25rem;
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  header h1 {
+    font-size: 1.05rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--text);
+  }
+  header .sub {
+    font-size: 0.8rem;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    letter-spacing: 0.02em;
+  }
+  .accent-bar {
+    display: inline-block;
+    width: 8px; height: 8px;
+    background: var(--accent);
+    border-radius: 50%;
+    margin-right: 0.5rem;
+    flex-shrink: 0;
+  }
+
+  main {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 1.5rem 1.5rem 4rem;
+  }
+
+  /* ── Song tabs ── */
+  .song-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 1.25rem;
+  }
+  .song-tab {
+    font-size: 0.75rem;
+    font-family: var(--font-mono);
+    padding: 5px 11px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    background: transparent;
+    color: var(--muted);
+    transition: all 0.12s;
+  }
+  .song-tab:hover { border-color: var(--border2); color: var(--text); }
+  .song-tab.active {
+    background: var(--bg3);
+    border-color: var(--border2);
+    color: var(--text);
+  }
+
+  /* ── Theory card ── */
+  .theory-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.1rem 1.25rem;
+    margin-bottom: 1.25rem;
+  }
+  .theory-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 10px;
+    margin-bottom: 0.9rem;
+  }
+  .theory-item label {
+    font-size: 0.7rem;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 2px;
+  }
+  .theory-item span {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .scale-notes {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--accent2);
+    margin-bottom: 0.75rem;
+    letter-spacing: 0.03em;
+  }
+  .theory-notes {
+    font-size: 0.85rem;
+    color: var(--muted);
+    line-height: 1.65;
+    border-top: 1px solid var(--border);
+    padding-top: 0.75rem;
+  }
+
+  /* ── Section labels ── */
+  .section-label {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+  }
+
+  /* ── Legend ── */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 0.75rem;
+  }
+  .leg-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    color: var(--muted);
+    font-family: var(--font-mono);
+  }
+  .leg-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* ── Canvas wrappers ── */
+  .canvas-wrap {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem;
+    margin-bottom: 1.25rem;
+    overflow-x: auto;
+  }
+  canvas { display: block; }
+
+  /* ── Mode selector ── */
+  .mode-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 1.25rem;
+    flex-wrap: wrap;
+  }
+  .mode-label { font-size: 0.75rem; color: var(--muted); font-family: var(--font-mono); }
+  .mode-btn {
+    font-size: 0.72rem;
+    font-family: var(--font-mono);
+    padding: 4px 10px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+  .mode-btn:hover { border-color: var(--border2); color: var(--text); }
+  .mode-btn.active { background: var(--bg3); border-color: var(--border2); color: var(--text); }
+
+  footer {
+    text-align: center;
+    padding: 1.5rem;
+    font-size: 0.72rem;
+    color: var(--muted);
+    border-top: 1px solid var(--border);
+    font-family: var(--font-mono);
+  }
+
+  @media (max-width: 520px) {
+    header { padding: 1rem; }
+    main { padding: 1rem 0.75rem 3rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1><span class="accent-bar"></span>PT / SW Theory Explorer</h1>
+  <span class="sub">Porcupine Tree &amp; Steven Wilson — scales, modes &amp; intervals</span>
+</header>
+
+<main>
+
+  <div class="song-tabs" id="tabs"></div>
+
+  <div id="theory-card" class="theory-card"></div>
+
+  <div class="mode-row">
+    <span class="mode-label">fretboard position:</span>
+    <button class="mode-btn active" id="pos-song" onclick="setPos('song')">song default</button>
+    <button class="mode-btn" id="pos-open" onclick="setPos('open')">open (0)</button>
+    <button class="mode-btn" id="pos-5" onclick="setPos(5)">5th fret</button>
+    <button class="mode-btn" id="pos-7" onclick="setPos(7)">7th fret</button>
+    <button class="mode-btn" id="pos-12" onclick="setPos(12)">12th fret</button>
+  </div>
+
+  <div class="legend">
+    <div class="leg-item"><div class="leg-dot" style="background:#c04828"></div>Root (1)</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#3b8bd4"></div>3rd</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#1d9e75"></div>5th</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#8b7dd8"></div>7th</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#e5a825"></div>Other</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#1e1e22;border:1px solid rgba(255,255,255,0.12)"></div>Not in scale</div>
+  </div>
+
+  <p class="section-label">Guitar — standard tuning E A D G B e</p>
+  <div class="canvas-wrap" style="padding: 0.75rem 0.5rem;">
+    <canvas id="fret-canvas"></canvas>
+  </div>
+
+  <p class="section-label">Piano — two octaves from C4</p>
+  <div class="canvas-wrap" style="padding: 0.75rem 0.5rem;">
+    <canvas id="piano-canvas"></canvas>
+  </div>
+
+</main>
+
+<footer>built for study · porcupine tree &amp; steven wilson · scales &amp; modes</footer>
+
+<script>
+const NOTES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+function noteIndex(n) { return NOTES.indexOf(n); }
+function buildScale(root, intervals) {
+  const r = noteIndex(root);
+  return intervals.map(i => NOTES[(r + i) % 12]);
+}
+const MODES = {
+  'Dorian':        [0,2,3,5,7,9,10],
+  'Aeolian':       [0,2,3,5,7,8,10],
+  'Phrygian':      [0,1,3,5,7,8,10],
+  'Lydian':        [0,2,4,6,7,9,11],
+  'Mixolydian':    [0,2,4,5,7,9,10],
+  'Major':         [0,2,4,5,7,9,11],
+  'Harmonic Minor':[0,2,3,5,7,8,11],
+  'Phrygian Dom':  [0,1,4,5,7,8,10],
+};
+const IV = ['1','b2','2','b3','3','4','b5','5','b6','6','b7','7'];
+
+const songs = [
+  { name:'Fear of a Blank Planet', short:'FoBP',     key:'E',  mode:'Lydian',       position:0,
+    notes:'Lydian gives the characteristic "floating" unease — the raised ♯4 (A# over E) creates harmonic ambiguity SW leans into. The riff is built over E Lydian with chromatic passing tones. Odd time signatures (13/8, 7/8) add rhythmic anxiety on top of the modal lift.' },
+  { name:'Anesthetize',            short:'Anest',    key:'D',  mode:'Aeolian',      position:0,
+    notes:'Primarily D natural minor (Aeolian). The central theme exploits the ♭7 (C) and ♭6 (B♭) heavily. The middle prog section shifts toward D Mixolydian — same tonic but ♮7 vs ♭7 creates a striking mood contrast.' },
+  { name:'Sentimental',            short:'Sentim',   key:'A',  mode:'Major',        position:5,
+    notes:'One of SW\'s rare major-key ballads. Clean A major using IV (D) and V (E) for resolution. The string arrangement adds a Lydian colour in places (D# passing tone), giving the sweetness a slight ache.' },
+  { name:'Blackest Eyes',          short:'BkEyes',   key:'E',  mode:'Aeolian',      position:0,
+    notes:'Hard-driving E natural minor. The main riff exploits the open E string as a drone while the melody moves around the scale. Classic SW move: power chords on 1 and ♭7 (E5 and D5) for that brooding drive.' },
+  { name:'Trains',                 short:'Trains',   key:'G',  mode:'Dorian',       position:3,
+    notes:'G Dorian is the key insight — mostly G minor but the raised 6th (E♮ rather than E♭) gives it a yearning, slightly hopeful quality. G Aeolian uses E♭; Dorian keeps E♮, making the iv chord (Cm) feel more open and less dark.' },
+  { name:'Arriving Somewhere',     short:'Arriving', key:'C#', mode:'Aeolian',      position:4,
+    notes:'C# minor (Aeolian). The epic build uses primarily i–VI–VII movement (C#m – A – B), one of SW\'s most-used progressions. The quiet intro arpeggios outline the scale beautifully — ideal for seeing intervals in action.' },
+  { name:'Lips of Ashes',          short:'LoAshes',  key:'F#', mode:'Aeolian',      position:2,
+    notes:'F# minor, simpler and more song-like. Chord movement is primarily i–v–VI–VII (F#m – C#m – A – B). Great for studying SW\'s melodic approach over natural minor — the vocal stays close to chord tones throughout.' },
+  { name:'Heartattack in a Layby', short:'HtAttack', key:'D',  mode:'Major',        position:0,
+    notes:'D major, sparse and intimate. The piano/guitar outlines a I–V–vi–IV pattern (D – A – Bm – G). The simplicity is the point — contrast to the complexity elsewhere. Good for studying how SW harmonises the major scale vocally.' },
+  { name:'The Raven',              short:'Raven',    key:'A',  mode:'Aeolian',      position:5,
+    notes:'A natural minor with strong Dorian colouring in the solo sections (F# appears). Main theme: i–VII–VI–VII (Am – G – F – G). The Lydian-tinged string arrangement in the middle section adds SW\'s characteristic "widescreen" quality.' },
+];
+
+function getScale(song) {
+  const intervals = MODES[song.mode];
+  const scaleNotes = buildScale(song.key, intervals);
+  const scaleMap = {};
+  intervals.forEach((iv, i) => { scaleMap[scaleNotes[i]] = iv; });
+  return { scaleNotes, scaleMap, intervals };
+}
+
+function degColor(deg) {
+  if (deg === 0)  return '#c04828';
+  if (deg === 3 || deg === 4) return '#3b8bd4';
+  if (deg === 7)  return '#1d9e75';
+  if (deg === 10 || deg === 11) return '#8b7dd8';
+  return '#e5a825';
+}
+
+// ── Fretboard ──
+const STRING_ROOTS_LO_HI = ['E','A','D','G','B','E'];
+
+function drawFretboard(song, startFret) {
+  const canvas = document.getElementById('fret-canvas');
+  const { scaleMap } = getScale(song);
+  const numFrets = 7, strings = 6;
+  const dpr = window.devicePixelRatio || 1;
+  const W = Math.min(760, window.innerWidth - 48);
+  const H = 188;
+  canvas.width  = W * dpr; canvas.height = H * dpr;
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  const ctx = canvas.getContext('2d'); ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, W, H);
+
+  const lp = 42, rp = 16, tp = 32, bp = 20;
+  const fretW = (W - lp - rp) / numFrets;
+  const strH  = (H - tp - bp) / (strings - 1);
+  const dotR  = 9;
+  const lineC  = 'rgba(255,255,255,0.1)';
+  const nutC   = 'rgba(255,255,255,0.45)';
+  const textC  = 'rgba(255,255,255,0.35)';
+
+  // Fret lines
+  for (let f = 0; f <= numFrets; f++) {
+    const x = lp + f * fretW;
+    ctx.beginPath(); ctx.moveTo(x, tp); ctx.lineTo(x, tp + strH * (strings - 1));
+    ctx.strokeStyle = (f === 0 && startFret === 0) ? nutC : lineC;
+    ctx.lineWidth   = (f === 0 && startFret === 0) ? 3 : 0.75;
+    ctx.stroke();
+  }
+  // Fret markers (dots at 5, 7, 9, 12 etc.)
+  const markers = [5,7,9,12,15,17];
+  for (let f = 1; f <= numFrets; f++) {
+    const fretNum = startFret + f;
+    if (markers.includes(fretNum)) {
+      const x = lp + (f - 0.5) * fretW;
+      const y = tp + strH * 2.5;
+      ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,255,255,0.1)'; ctx.fill();
+      if (fretNum === 12) {
+        ctx.beginPath(); ctx.arc(x, tp + strH * 1.5, 3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath(); ctx.arc(x, tp + strH * 3.5, 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+  // String lines
+  for (let s = 0; s < strings; s++) {
+    const y = tp + s * strH;
+    ctx.beginPath(); ctx.moveTo(lp, y); ctx.lineTo(lp + numFrets * fretW, y);
+    ctx.strokeStyle = lineC; ctx.lineWidth = 0.75 + s * 0.12; ctx.stroke();
+    // String label
+    const label = STRING_ROOTS_LO_HI[strings - 1 - s];
+    ctx.fillStyle = textC; ctx.font = '11px "JetBrains Mono", monospace';
+    ctx.textAlign = 'right'; ctx.fillText(label, lp - 7, y + 4);
+  }
+  // Fret numbers
+  for (let f = 0; f < numFrets; f++) {
+    const x = lp + (f + 0.5) * fretW;
+    ctx.fillStyle = textC; ctx.font = '10px "JetBrains Mono", monospace';
+    ctx.textAlign = 'center'; ctx.fillText(startFret + f + 1, x, tp - 12);
+  }
+  // Open string dots (if nut position)
+  if (startFret === 0) {
+    for (let s = 0; s < strings; s++) {
+      const strRoot = STRING_ROOTS_LO_HI[strings - 1 - s];
+      const semitone = noteIndex(strRoot) % 12;
+      const noteName = NOTES[semitone];
+      if (scaleMap[noteName] !== undefined) {
+        const y = tp + s * strH;
+        ctx.beginPath(); ctx.arc(lp - 22, y, dotR - 1, 0, Math.PI * 2);
+        ctx.fillStyle = degColor(scaleMap[noteName]); ctx.fill();
+        ctx.fillStyle = '#fff'; ctx.font = 'bold 8px "JetBrains Mono", monospace';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(IV[scaleMap[noteName]], lp - 22, y);
+        ctx.textBaseline = 'alphabetic';
+      }
+    }
+  }
+  // Fretted dots
+  for (let s = 0; s < strings; s++) {
+    const strRoot = STRING_ROOTS_LO_HI[strings - 1 - s];
+    const y = tp + s * strH;
+    for (let f = 0; f < numFrets; f++) {
+      const midiOffset = (noteIndex(strRoot) + startFret + f + 1) % 12;
+      const noteName = NOTES[midiOffset];
+      if (scaleMap[noteName] !== undefined) {
+        const x = lp + (f + 0.5) * fretW;
+        ctx.beginPath(); ctx.arc(x, y, dotR, 0, Math.PI * 2);
+        ctx.fillStyle = degColor(scaleMap[noteName]); ctx.fill();
+        ctx.fillStyle = '#fff'; ctx.font = 'bold 8px "JetBrains Mono", monospace';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(IV[scaleMap[noteName]], x, y);
+        ctx.textBaseline = 'alphabetic';
+      }
+    }
+  }
+}
+
+// ── Piano ──
+function drawPiano(song) {
+  const canvas = document.getElementById('piano-canvas');
+  const { scaleMap } = getScale(song);
+  const dpr = window.devicePixelRatio || 1;
+  const W = Math.min(760, window.innerWidth - 48);
+  const H = 128;
+  canvas.width  = W * dpr; canvas.height = H * dpr;
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  const ctx = canvas.getContext('2d'); ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, W, H);
+
+  const whiteSeq = [0,2,4,5,7,9,11]; // semitone offsets for C D E F G A B
+  const blackSeq = [1,3,-1,6,8,10,-1];
+  const numOct = 2, totalW = 7 * numOct;
+  const wW = Math.floor((W - 2) / totalW);
+  const wH = H - 18;
+  const bW = Math.round(wW * 0.58);
+  const bH = Math.round(wH * 0.60);
+
+  // White keys
+  let wx = 1;
+  for (let oct = 0; oct < numOct; oct++) {
+    for (let w = 0; w < 7; w++) {
+      const semitone = (whiteSeq[w] + oct * 12) % 12;
+      const noteName = NOTES[semitone];
+      const inScale = scaleMap[noteName] !== undefined;
+      ctx.fillStyle = inScale ? degColor(scaleMap[noteName]) : '#1e1e22';
+      ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.lineWidth = 0.75;
+      ctx.fillRect(wx, 2, wW - 1, wH);
+      ctx.strokeRect(wx, 2, wW - 1, wH);
+      if (inScale) {
+        ctx.fillStyle = 'rgba(255,255,255,0.9)';
+        ctx.font = 'bold 8px "JetBrains Mono", monospace';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+        ctx.fillText(IV[scaleMap[noteName]], wx + wW / 2 - 0.5, wH + 1);
+        ctx.textBaseline = 'alphabetic';
+      }
+      // C label
+      if (noteName === 'C') {
+        ctx.fillStyle = inScale ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.2)';
+        ctx.font = '9px "JetBrains Mono", monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('C' + (oct + 4), wx + wW / 2 - 0.5, wH - 5);
+      }
+      wx += wW;
+    }
+  }
+  // Black keys
+  wx = 1;
+  for (let oct = 0; oct < numOct; oct++) {
+    for (let w = 0; w < 7; w++) {
+      const bp = blackSeq[w];
+      if (bp < 0) { wx += wW; continue; }
+      const semitone = (bp + oct * 12) % 12;
+      const noteName = NOTES[semitone];
+      const inScale = scaleMap[noteName] !== undefined;
+      const bx = wx + wW - Math.round(bW / 2);
+      ctx.fillStyle = inScale ? degColor(scaleMap[noteName]) : '#111113';
+      ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 0.5;
+      ctx.fillRect(bx, 2, bW, bH);
+      ctx.strokeRect(bx, 2, bW, bH);
+      if (inScale) {
+        ctx.fillStyle = 'rgba(255,255,255,0.9)';
+        ctx.font = 'bold 7px "JetBrains Mono", monospace';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+        ctx.fillText(IV[scaleMap[noteName]], bx + bW / 2, bH + 1);
+        ctx.textBaseline = 'alphabetic';
+      }
+      wx += wW;
+    }
+  }
+}
+
+// ── State ──
+let currentSong = 0;
+let posMode = 'song';
+
+function getStartFret() {
+  if (posMode === 'song')  return songs[currentSong].position;
+  if (posMode === 'open')  return 0;
+  return parseInt(posMode);
+}
+
+function setPos(mode) {
+  posMode = mode;
+  ['pos-song','pos-open','pos-5','pos-7','pos-12'].forEach(id => {
+    document.getElementById(id).classList.remove('active');
+  });
+  const idMap = { 'song':'pos-song','open':'pos-open', 5:'pos-5', 7:'pos-7', 12:'pos-12' };
+  if (idMap[mode]) document.getElementById(idMap[mode]).classList.add('active');
+  drawFretboard(songs[currentSong], getStartFret());
+}
+
+function render(idx) {
+  currentSong = idx;
+  document.querySelectorAll('.song-tab').forEach((t, i) => t.classList.toggle('active', i === idx));
+  const song = songs[idx];
+  const { scaleNotes } = getScale(song);
+  document.getElementById('theory-card').innerHTML = `
+    <div class="theory-grid">
+      <div class="theory-item"><label>Key</label><span>${song.key}</span></div>
+      <div class="theory-item"><label>Mode / scale</label><span>${song.mode}</span></div>
+      <div class="theory-item"><label>Default position</label><span>Fret ${song.position === 0 ? '0 (open)' : song.position}</span></div>
+    </div>
+    <div class="scale-notes">${song.key} ${song.mode} &nbsp;·&nbsp; ${scaleNotes.join(' – ')}</div>
+    <div class="theory-notes">${song.notes}</div>
+  `;
+  drawFretboard(song, getStartFret());
+  drawPiano(song);
+}
+
+// Build tabs
+const tabsEl = document.getElementById('tabs');
+songs.forEach((s, i) => {
+  const b = document.createElement('button');
+  b.className = 'song-tab' + (i === 0 ? ' active' : '');
+  b.textContent = s.short;
+  b.title = s.name;
+  b.onclick = () => render(i);
+  tabsEl.appendChild(b);
+});
+
+render(0);
+window.addEventListener('resize', () => {
+  drawFretboard(songs[currentSong], getStartFret());
+  drawPiano(songs[currentSong]);
+});
+</script>
+</body>
+</html>
